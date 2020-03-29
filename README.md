@@ -1,5 +1,5 @@
 
-APP'S FUNCTIONALITY:
+APP'S UI:
 
 The app's UI contains two buttons,  identify button (for capturing and identifying the image) and send button (for sending the image to the database).
 
