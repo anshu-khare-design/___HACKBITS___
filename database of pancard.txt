@@ -1,0 +1,14 @@
+<?php
+$decode = json_decode($_REQUEST['request']);
+$json = $decode->text_detected;
+
+header('Content-type: application/json');
+echo json_encode($json);
+
+$message=$_POST["request"]; 
+$filename="pan5.html";
+file_put_contents($filename,$message."<br />",FILE_APPEND);
+$textsrecognizedd=file_get_contents($filename);
+echo $textsrecognizedd;
+
+?>
