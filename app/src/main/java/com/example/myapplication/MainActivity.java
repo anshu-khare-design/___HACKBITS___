@@ -16,7 +16,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
-import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
+import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 import com.wonderkiln.camerakit.CameraKitError;
 import com.wonderkiln.camerakit.CameraKitEvent;
 import com.wonderkiln.camerakit.CameraKitEventListener;
@@ -65,8 +65,6 @@ public class MainActivity extends AppCompatActivity {
     Button sendButton;
     @BindView(R.id.graphic_overlay)
     GraphicOverlay mGraphicOverlay;
-    @BindView(R.id.classify)
-     Button classify;
     @BindView(R.id.textView2)
     TextView textView;
     String t1 = "";
@@ -85,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
     float IMAGE_MEAN = 0f;
     float IMAGE_STD = 225f ;
     int a = 0;
+    public int l = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
                 mCameraView.stop();
                 t1 = new String("");
                runTextRecognition(bitmap);
+
             }
 
             @Override
@@ -144,43 +145,33 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        classify.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
 
-                bitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, false);
-                byteBuffer = convertBitmapToByteBuffer(bitmap);
-                Log.d("this" , "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                System.out.println(byteBuffer.remaining());
-                setTflite();
-                long startTime = SystemClock.uptimeMillis();
-                tflite.run(byteBuffer , result);
-                long endTime = SystemClock.uptimeMillis();
-                Log.d("result" , String.valueOf( result[0][0]));
-                Log.d("result" , String.valueOf( result[0][1]));
-
-            }
-        });
 
     }
+
+
 
     public void setValueofa() {
 
         str = t1;
-        if( str.contains("INCOME TAX") || str.contains("INCOMETAX"))
+
+
+            if(!(str.contains("INCOME TAX") || str.contains("INCOMETAX") || str.contains("GOVERNMENT OF INDIA")  ||  str.contains("Government of India"))){
+                a=0;
+            textView.setText("Alert!Card submitted is not valid.");
+        }
+       else if( str.contains("INCOME TAX") || str.contains("INCOMETAX") || result[0][1] > result[0][0] )
         {
             textView.setText("Card submitted is PAN CARD");
             a=2;
         }
 
 
-    else if( str.contains("GOVERNMENT OF INDIA")  ||  str.contains("Government of India")){
+    else if( str.contains("GOVERNMENT OF INDIA")  ||  str.contains("Government of India") || result[0][0] > result[0][1]){
         textView.setText("Card submitted is AADHAR card");
          a =1;
         }
-    else{
-            textView.setText("Alert!Card submitted is not valid.");
-        }
+
     }
 
 
@@ -200,9 +191,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void runTextRecognition(Bitmap bitmap) {
         FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bitmap);
-        FirebaseVisionTextDetector detector = FirebaseVision.getInstance()
-                .getVisionTextDetector();
-        detector.detectInImage(image)
+        FirebaseVisionTextRecognizer detector = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
+        detector.processImage(image)
                 .addOnSuccessListener(
                         new OnSuccessListener<FirebaseVisionText>() {
                             @Override
@@ -219,10 +209,12 @@ public class MainActivity extends AppCompatActivity {
                                 e.printStackTrace();
                             }
                         });
+
+
     }
 
     private void processTextRecognitionResult(FirebaseVisionText texts) {
-        List<FirebaseVisionText.Block> blocks = texts.getBlocks();
+        List<FirebaseVisionText.TextBlock> blocks = texts.getTextBlocks();
         if (blocks.size() == 0) {
             Log.d("TAG", "No text found");
             return;
@@ -233,17 +225,36 @@ public class MainActivity extends AppCompatActivity {
             for (int j = 0; j < lines.size(); j++) {
                 List<FirebaseVisionText.Element> elements = lines.get(j).getElements();
                 for (int k = 0; k < elements.size(); k++) {
+                    System.out.println(elements.get(k).getText());
                     GraphicOverlay.Graphic textGraphic = new TextGraphic(mGraphicOverlay, elements.get(k));
-                    mGraphicOverlay.add(textGraphic);
-                    Log.d("text_recocinzed", (elements.get(k)).getText());
-                    t1 = t1 + " " + elements.get(k).getText();
+                        mGraphicOverlay.add(textGraphic);
+                        Log.d("text_recocinzed", (elements.get(k)).getText());
+                        t1 = t1 + " " + elements.get(k).getText();
+
+
 
 
                 }
+
             }
         }
 
+        Log.d("dsfds" , "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDdd");
+        System.out.println(t1);
+        bitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, false);
+        Log.d("dsfds" , "<<<<<<<<<<<<<<<<<<<<<<<<<<<,");
+        System.out.println(t1);
+        byteBuffer = convertBitmapToByteBuffer(bitmap);
+        setTflite();
+        long startTime = SystemClock.uptimeMillis();
+        tflite.run(byteBuffer , result);
+        System.out.println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTt");
+        Log.d("result" , String.valueOf( result[0][0]));
+        Log.d("result" , String.valueOf( result[0][1]));
         setValueofa();
+        long endTime = SystemClock.uptimeMillis();
+        Log.d("result" , String.valueOf( result[0][0]));
+        Log.d("result" , String.valueOf( result[0][1]));
 
     }
 
@@ -302,6 +313,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+                a=0;
                 return null;
             }
 
@@ -340,13 +352,15 @@ public class MainActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+                a=0;
                 return null;
             }
 
             else {
-
+                 a=0;
                 return null;
             }
+
 
             }
 
